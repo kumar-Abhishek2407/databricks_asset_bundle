@@ -1,0 +1,8 @@
+{
+    "dev" :{
+        "citibike_catalog" : "citibike_dev"
+    },
+    "test":{
+        "citibike_catalog" : "citibike_test"
+    }
+}

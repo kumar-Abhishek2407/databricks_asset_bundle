@@ -4,6 +4,10 @@ resources:
     citibike_notebook:
       name: citibike_notebook
 
+      parameters:
+        - name: env
+          default: ${bundle.target}
+
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: "Asia/Kolkata"
@@ -14,10 +18,11 @@ resources:
           notebook_task:
             notebook_path: ../citibike_etl/notebooks/bronze/bronze_citibike.ipynb
             base_parameters:
-              pipeline_id : "{{job.id}}"
-              run_id : "{{run.id}}"
-              task_id : "{{task.run_id}}"
-              processed_timestamp : "{{job.start_time.iso_datetime}}"
+              pipeline_id: "{{job.id}}"
+              run_id: "{{run.id}}"
+              task_id: "{{task.run_id}}"
+              processed_timestamp: "{{job.start_time.iso_datetime}}"
+              env: "{{job.parameters.env}}"
           environment_key: Default
 
         - task_key: citibike_silver
@@ -27,10 +32,11 @@ resources:
             notebook_path: ../citibike_etl/notebooks/silver/silver_citybike.ipynb
             source: WORKSPACE
             base_parameters:
-              pipeline_id : "{{job.id}}"
-              run_id : "{{run.id}}"
-              task_id : "{{task.run_id}}"
-              processed_timestamp : "{{job.start_time.iso_datetime}}"
+              pipeline_id: "{{job.id}}"
+              run_id: "{{run.id}}"
+              task_id: "{{task.run_id}}"
+              processed_timestamp: "{{job.start_time.iso_datetime}}"
+              env: "{{job.parameters.env}}"
           environment_key: Default
 
         - task_key: citibike_gold_summary
@@ -39,6 +45,8 @@ resources:
           notebook_task:
             notebook_path: ../citibike_etl/notebooks/gold/gold_citibike_daily_ride_summary.ipynb
             source: WORKSPACE
+            base_parameters:
+              env: "{{job.parameters.env}}"
           environment_key: Default
 
         - task_key: citibike_gold_performance
@@ -47,6 +55,8 @@ resources:
           notebook_task:
             notebook_path: ../citibike_etl/notebooks/gold/gold_citibike_daily_station_performance.ipynb
             source: WORKSPACE
+            base_parameters:
+              env: "{{job.parameters.env}}"
           environment_key: Default
 
       queue:
