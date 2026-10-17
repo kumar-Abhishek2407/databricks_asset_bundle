@@ -1,0 +1,60 @@
+
+resources:
+  jobs:
+    citibike_notebook:
+      name: citibike_notebook
+
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "Asia/Kolkata"
+        pause_status: UNPAUSED
+
+      tasks:
+        - task_key: citibike_bronze
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/bronze/bronze_citibike.ipynb
+            base_parameters:
+              pipeline_id : "{{job.id}}"
+              run_id : "{{run.id}}"
+              task_id : "{{task.run_id}}"
+              processed_timestamp : "{{job.start_time.iso_datetime}}"
+          environment_key: Default
+
+        - task_key: citibike_silver
+          depends_on:
+            - task_key: citibike_bronze
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/silver/silver_citybike.ipynb
+            source: WORKSPACE
+            base_parameters:
+              pipeline_id : "{{job.id}}"
+              run_id : "{{run.id}}"
+              task_id : "{{task.run_id}}"
+              processed_timestamp : "{{job.start_time.iso_datetime}}"
+          environment_key: Default
+
+        - task_key: citibike_gold_summary
+          depends_on:
+            - task_key: citibike_silver
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/gold/gold_citibike_daily_ride_summary.ipynb
+            source: WORKSPACE
+          environment_key: Default
+
+        - task_key: citibike_gold_performance
+          depends_on:
+            - task_key: citibike_silver
+          notebook_task:
+            notebook_path: ../citibike_etl/notebooks/gold/gold_citibike_daily_station_performance.ipynb
+            source: WORKSPACE
+          environment_key: Default
+
+      queue:
+        enabled: true
+
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "6"
+
+      performance_target: PERFORMANCE_OPTIMIZED
