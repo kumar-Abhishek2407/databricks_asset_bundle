@@ -1,8 +1,20 @@
 {
-    "dev" :{
-        "citibike_catalog" : "citibike_dev"
-    },
-    "test":{
-        "citibike_catalog" : "citibike_test"
-    }
+  "dev": {
+    "citibike_catalog": "citibike_dev",
+    "landing_schema": "00_landing",
+    "bronze_schema": "01_bronze",
+    "silver_schema": "02_silver",
+    "gold_schema": "03_gold",
+    "source_volume": "source_citibike_data",
+    "source_file": "JC-202503-citibike-tripdata.csv"
+  },
+  "test": {
+    "citibike_catalog": "citibike_test",
+    "landing_schema": "00_landing",
+    "bronze_schema": "01_bronze",
+    "silver_schema": "02_silver",
+    "gold_schema": "03_gold",
+    "source_volume": "source_citibike_data",
+    "source_file": "JC-202503-citibike-tripdata.csv"
+  }
 }
