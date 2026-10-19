@@ -24,7 +24,7 @@ def params(env):
 def test_target_specific_configuration(env, catalog):
     ctx = load_context_from_job(params(env))
     assert ctx.env == env
-    assert ctx.require("citibike_catalog") == catalog
+    assert ctx.runtime_config.get("catalog", "") == catalog
     assert ctx.bundle == {"catalog": "dab", "schema": "dev"}
 
 
@@ -58,7 +58,7 @@ def test_runner_executes_script_with_context(monkeypatch, tmp_path):
 
     script = tmp_path / "business.py"
     output = tmp_path / "result.txt"
-    script.write_text("from pathlib import Path\nPath(ctx.require('output')).write_text(str(spark) + ':' + ctx.env)\n")
+    script.write_text("def run(ctx):\n    from pathlib import Path\n    Path(ctx.runtime_config['output']).write_text(str(ctx.spark) + ':' + ctx.env)\n")
     monkeypatch.setitem(registry.PIPELINE_SCRIPTS, "example", {"bronze": "business.py"})
     monkeypatch.setitem(sys.modules, "src.framework.spark_helpers", SimpleNamespace(get_spark=lambda: "fake-spark"))
     ctx = PipelineContext("test", str(tmp_path), "example", "bronze", {"output": str(output)})
@@ -71,7 +71,7 @@ def test_runner_propagates_business_failure(monkeypatch, tmp_path):
     from types import SimpleNamespace
     from src.framework import registry
 
-    (tmp_path / "business.py").write_text("raise RuntimeError('business failed')")
+    (tmp_path / "business.py").write_text("def run(ctx):\n    raise RuntimeError('business failed')")
     monkeypatch.setitem(registry.PIPELINE_SCRIPTS, "example", {"bronze": "business.py"})
     monkeypatch.setitem(sys.modules, "src.framework.spark_helpers", SimpleNamespace(get_spark=lambda: object()))
     ctx = PipelineContext("dev", str(tmp_path), "example", "bronze")
@@ -109,7 +109,7 @@ def test_job_notebook_points_to_thin_notebook():
     assert {"dev", "test"}.issubset(root["targets"])
     for target_name in ("dev", "test"):
         assert root["targets"][target_name]["variables"]["environment"] == target_name
-    tasks = job["resources"]["jobs"]["citibike_notebook"]["tasks"]
+    tasks = job["resources"]["jobs"]["citibike"]["tasks"]
     assert len(tasks) == 4
     for task in tasks:
         notebook = task["notebook_task"]
@@ -125,3 +125,39 @@ def test_widget_reader():
     class Dbu:
         widgets = Widgets()
     assert job_parameters_from_widgets(Dbu())["environment"] == "dev"
+
+
+@pytest.mark.parametrize("env", ["dev", "test"])
+def test_runtime_config_contains_only_selected_environment(env):
+    settings = json.loads((ROOT / "runtime_config/config.json").read_text())
+    ctx = load_context_from_job(params(env))
+    assert ctx.runtime_config == settings[env]
+    assert ctx.runtime_config.get("catalog", "") == settings[env]["catalog"]
+    assert ctx.runtime_config.get("missing", "fallback") == "fallback"
+
+
+def test_business_modules_import_without_spark_or_framework_setup():
+    import ast
+    import runpy
+    from src.framework.registry import PIPELINE_SCRIPTS
+
+    for stages in PIPELINE_SCRIPTS.values():
+        for relative in stages.values():
+            path = ROOT / relative
+            assert callable(runpy.run_path(str(path))["run"])
+            for node in ast.walk(ast.parse(path.read_text())):
+                if isinstance(node, ast.ImportFrom):
+                    assert not (node.module or "").startswith("src.framework")
+
+
+def test_runner_requires_run_entrypoint(tmp_path, monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from src.framework import registry
+
+    (tmp_path / "business.py").write_text("value = 1")
+    monkeypatch.setitem(registry.PIPELINE_SCRIPTS, "example", {"bronze": "business.py"})
+    monkeypatch.setitem(sys.modules, "src.framework.spark_helpers", SimpleNamespace(get_spark=lambda: object()))
+    ctx = PipelineContext("dev", str(tmp_path), "example", "bronze")
+    with pytest.raises(ValueError, match=r"must define run\(ctx\)"):
+        PipelineRunner(FakeDbutils()).run(ctx)

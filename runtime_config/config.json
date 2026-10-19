@@ -1,6 +1,6 @@
 {
   "dev": {
-    "citibike_catalog": "citibike_dev",
+    "catalog": "citibike_dev",
     "landing_schema": "00_landing",
     "bronze_schema": "01_bronze",
     "silver_schema": "02_silver",
@@ -9,7 +9,7 @@
     "source_file": "JC-202503-citibike-tripdata.csv"
   },
   "test": {
-    "citibike_catalog": "citibike_test",
+    "catalog": "citibike_test",
     "landing_schema": "00_landing",
     "bronze_schema": "01_bronze",
     "silver_schema": "02_silver",

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
 import runpy
+from dataclasses import replace
 from typing import Any
 
 from .context import PipelineContext, job_parameters_from_widgets, load_context_from_job
@@ -38,7 +39,11 @@ class PipelineRunner:
 
         print(f"Starting {ctx.pipeline}/{ctx.stage} in {ctx.env} -> {path}")
         # Exceptions propagate to the job task; Jobs manages stage dependencies.
-        runpy.run_path(str(path), init_globals={"spark": get_spark(), "ctx": ctx})
+        namespace = runpy.run_path(str(path))
+        entrypoint = namespace.get("run")
+        if not callable(entrypoint):
+            raise ValueError(f"Business script must define run(ctx): {path}")
+        entrypoint(replace(ctx, spark=get_spark()))
         print(f"Finished {ctx.pipeline}/{ctx.stage}")
         return "SUCCESS"
 

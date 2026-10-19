@@ -22,6 +22,7 @@ class PipelineContext:
     stage: str
     config: dict[str, Any] = field(default_factory=dict)
     bundle: dict[str, str] = field(default_factory=dict)
+    spark: Any = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if not self.environment or not self.environment.strip():
@@ -30,6 +31,11 @@ class PipelineContext:
             raise ValueError("workspace_root must be an absolute workspace file path")
         if not isinstance(self.config, dict):
             raise TypeError("config must be a JSON object")
+
+    @property
+    def runtime_config(self) -> dict[str, Any]:
+        """Settings for the environment selected by the job."""
+        return self.config
 
     @property
     def env(self) -> str:

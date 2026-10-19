@@ -16,17 +16,17 @@ def _identifier(value: str) -> str:
 
 
 def table_name(ctx, schema_key: str, table: str) -> str:
-    return ".".join(_identifier(part) for part in (ctx.require("citibike_catalog"), ctx.require(schema_key), table))
+    return ".".join(_identifier(part) for part in (ctx.runtime_config["catalog"], ctx.require(schema_key), table))
 
 
 def ensure_schema(spark, ctx, schema_key: str) -> None:
-    schema_name = ".".join(_identifier(part) for part in (ctx.require("citibike_catalog"), ctx.require(schema_key)))
+    schema_name = ".".join(_identifier(part) for part in (ctx.runtime_config["catalog"], ctx.require(schema_key)))
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
 
 
 def volume_file_path(ctx) -> str:
     """Volume name and filename are regular data-path components, not SQL identifiers."""
-    parts = [ctx.require(key) for key in ("citibike_catalog", "landing_schema", "source_volume", "source_file")]
+    parts = [ctx.require(key) for key in ("catalog", "landing_schema", "source_volume", "source_file")]
     for part in parts:
         if not isinstance(part, str) or not part or part in (".", "..") or "/" in part or "\\" in part:
             raise ValueError(f"Unsafe Unity Catalog volume path component: {part!r}")

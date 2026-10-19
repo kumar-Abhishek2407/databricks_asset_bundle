@@ -1,15 +1,18 @@
-from src.framework.spark_helpers import table_name, ensure_schema, volume_file_path
+def run(ctx):
+    spark = ctx.spark
+    config = ctx.runtime_config
+    catalog = config["catalog"]
 
-df = (
-    spark.read
-    .option("header", True)
-    .option("inferSchema", False)
-    .csv(volume_file_path(ctx))
-)
+    df = (
+        spark.read
+        .option("header", True)
+        .option("inferSchema", False)
+        .csv(f"/Volumes/{catalog}/{config['landing_schema']}/{config['source_volume']}/{config['source_file']}")
+    )
 
-ensure_schema(spark, ctx, "bronze_schema")
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{config['bronze_schema']}`")
 
-df.write.\
-mode("overwrite").\
-option("overwriteSchema", "true").\
-saveAsTable(table_name(ctx, "bronze_schema", "jc_citibike"))
+    df.write.\
+    mode("overwrite").\
+    option("overwriteSchema", "true").\
+    saveAsTable(f"`{catalog}`.`{config['bronze_schema']}`.`jc_citibike`")
