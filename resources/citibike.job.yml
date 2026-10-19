@@ -64,4 +64,6 @@ resources:
         - environment_key: Default
           spec:
             environment_version: "6"
+            dependencies:
+              - ../dist/*.whl
       performance_target: PERFORMANCE_OPTIMIZED

@@ -8,7 +8,7 @@
         "**/*.egg-info": true,
         "**/__pycache__": true,
         ".pytest_cache": true,
-        "dist": true,
+        "dist": false,
     },
     "files.associations": {
         "**/.gitkeep": "markdown"
