@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-_REQUIRED_WIDGETS = ("environment", "workspace_root", "pipeline", "stage")
+_REQUIRED_WIDGETS = ("environment", "workspace_root", "module")
 _OPTIONAL_WIDGETS = ("bundle_catalog", "bundle_schema")
 
 
@@ -18,8 +18,7 @@ _OPTIONAL_WIDGETS = ("bundle_catalog", "bundle_schema")
 class PipelineContext:
     environment: str
     workspace_root: str
-    pipeline: str
-    stage: str
+    module: str
     config: dict[str, Any] = field(default_factory=dict)
     bundle: dict[str, str] = field(default_factory=dict)
     spark: Any = field(default=None, repr=False, compare=False)
@@ -57,8 +56,7 @@ class PipelineContext:
             {
                 "environment": self.environment,
                 "workspace_root": self.workspace_root,
-                "pipeline": self.pipeline,
-                "stage": self.stage,
+                "module": self.module,
                 "config": self.config,
                 "bundle": self.bundle,
             }, ensure_ascii=True
@@ -102,8 +100,7 @@ def load_context_from_job(parameters: Mapping[str, str], config_path: str | Path
     return PipelineContext(
         environment=env,
         workspace_root=str(root),
-        pipeline=parameters["pipeline"],
-        stage=parameters["stage"],
+        module=parameters["module"],
         config=dict(data[env]),
         bundle={
             "catalog": parameters.get("bundle_catalog", ""),

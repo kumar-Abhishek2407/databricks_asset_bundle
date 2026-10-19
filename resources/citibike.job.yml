@@ -1,4 +1,4 @@
-# Each task uses the framework entrypoint; stage selects its business script.
+# Each task uses the framework entrypoint; module selects its business script.
 resources:
   jobs:
     citibike:
@@ -15,8 +15,7 @@ resources:
             base_parameters:
               environment: ${var.environment}
               workspace_root: ${workspace.file_path}
-              pipeline: citibike_etl
-              stage: bronze
+              module: pipeline_modules/citibike_etl/bronze/bronze_citibike.py
           environment_key: Default
 
         - task_key: citibike_silver
@@ -28,8 +27,7 @@ resources:
             base_parameters:
               environment: ${var.environment}
               workspace_root: ${workspace.file_path}
-              pipeline: citibike_etl
-              stage: silver
+              module: pipeline_modules/citibike_etl/silver/silver_citybike.py
           environment_key: Default
 
         - task_key: citibike_gold_summary
@@ -41,8 +39,7 @@ resources:
             base_parameters:
               environment: ${var.environment}
               workspace_root: ${workspace.file_path}
-              pipeline: citibike_etl
-              stage: gold_summary
+              module: pipeline_modules/citibike_etl/gold/gold_citibike_daily_ride_summary.py
           environment_key: Default
 
         - task_key: citibike_gold_performance
@@ -54,8 +51,7 @@ resources:
             base_parameters:
               environment: ${var.environment}
               workspace_root: ${workspace.file_path}
-              pipeline: citibike_etl
-              stage: gold_performance
+              module: pipeline_modules/citibike_etl/gold/gold_citibike_daily_station_performance.py
           environment_key: Default
 
       queue:

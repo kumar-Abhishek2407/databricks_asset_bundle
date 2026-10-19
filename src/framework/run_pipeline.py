@@ -1,13 +1,13 @@
 # Databricks notebook source
 # Thin entrypoint shared by every Databricks Job task.
-# All job input values are supplied from resources/citibike.job.yml.
+# Job input values are supplied by each job's base_parameters.
 import sys
 from pathlib import Path
 
 # Widgets also allow launching this notebook manually with explicit inputs.
 for name in (
     "environment", "workspace_root", "bundle_catalog", "bundle_schema",
-    "pipeline", "stage",
+    "module",
 ):
     dbutils.widgets.text(name, "")
 

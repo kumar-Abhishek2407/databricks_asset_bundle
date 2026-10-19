@@ -9,8 +9,7 @@ databricks.yml                         deployment targets and variables
   -> resources/citibike.job.yml   schedule, dependencies, task inputs
      -> src/framework/run_pipeline.py  shared job entrypoint
         -> context.py                    loads runtime_config/config.json[environment]
-        -> runner.py                     calls the registered run(ctx) function
-           -> registry.py                maps pipeline/stage to a .py file
+        -> runner.py                     calls the configured module's run(ctx)
               -> pipeline_modules/citibike_etl/{bronze,silver,gold}/*.py
 ```
 
@@ -26,8 +25,8 @@ settings from `ctx.runtime_config`. The scripts use `ctx.spark` and have no fram
 ## Configuration
 
 `runtime_config/config.json` holds each environment's Citibike catalog, schemas,
-source volume and filename. The job passes `environment`, `workspace_root`, `pipeline`,
-`stage`, `bundle_catalog`, and `bundle_schema` to the framework.
+source volume and filename. The job passes `environment`, `workspace_root`, and `module` to the framework.
+Optional bundle catalog/schema widgets remain available.
 
 `ctx.runtime_config.get("catalog", "")` selects the operational catalog (`citibike_dev`
 or `citibike_test`). Bundle catalog/schema settings are available in `ctx.bundle`.
@@ -51,8 +50,12 @@ writes on each execution.
 
 ## Adding a pipeline
 
-Create business scripts, register their stage paths in `src/framework/registry.py`,
-and add a job YAML under `resources/` reusing `src/framework/run_pipeline.py`.
+Create a business module defining `run(ctx)` and add a job YAML under `resources/`
+reusing `src/framework/run_pipeline.py`. Set `module` to the file's path relative to
+the bundle root, for example `pipeline_modules/delhi_metro/bronze/ingest.py`.
+No framework or registry changes are needed. The runner accepts only `.py` files
+inside `pipeline_modules` and rejects absolute paths, traversal, and resolved paths
+outside that directory.
 Add environment-specific settings to `runtime_config/config.json` as needed.
 
 ## Local verification

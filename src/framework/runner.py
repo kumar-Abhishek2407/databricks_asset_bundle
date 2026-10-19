@@ -1,13 +1,12 @@
-"""Run registered business scripts inside the framework job notebook."""
+"""Run business modules selected by job configuration."""
 from __future__ import annotations
 
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import runpy
 from dataclasses import replace
 from typing import Any
 
 from .context import PipelineContext, job_parameters_from_widgets, load_context_from_job
-from .registry import PIPELINE_SCRIPTS
 
 
 class PipelineRunner:
@@ -15,20 +14,27 @@ class PipelineRunner:
         self.dbutils = dbutils
 
     def script_path(self, ctx: PipelineContext) -> Path:
-        try:
-            relative = PIPELINE_SCRIPTS[ctx.pipeline][ctx.stage]
-        except KeyError as error:
-            raise ValueError(
-                f"Unknown pipeline/stage: {ctx.pipeline}/{ctx.stage}. "
-                "Register the script in src/framework/registry.py"
-            ) from error
+        relative = ctx.module
         relative_path = PurePosixPath(relative)
-        if relative_path.is_absolute() or '..' in relative_path.parts:
-            raise ValueError(f"Unsafe registry script path: {relative}")
+        if (
+            not relative
+            or "\\" in relative
+            or ":" in relative
+            or relative_path.is_absolute()
+            or PureWindowsPath(relative).drive
+            or ".." in relative_path.parts
+            or not relative_path.parts
+            or relative_path.parts[0] != "pipeline_modules"
+            or relative_path.suffix != ".py"
+        ):
+            raise ValueError(f"Module must be a relative .py path inside pipeline_modules: {relative}")
         root = Path(ctx.workspace_root).resolve()
+        modules_root = root / "pipeline_modules"
+        if not modules_root.resolve().is_relative_to(root):
+            raise ValueError("pipeline_modules must stay inside workspace_root")
         path = (root / relative).resolve()
-        if not path.is_relative_to(root):
-            raise ValueError(f"Script is outside workspace_root: {relative}")
+        if not path.is_relative_to(modules_root.resolve()):
+            raise ValueError(f"Module is outside pipeline_modules: {relative}")
         if not path.is_file():
             raise FileNotFoundError(f"Business script not found: {path}")
         return path
@@ -37,14 +43,14 @@ class PipelineRunner:
         path = self.script_path(ctx)
         from .spark_helpers import get_spark
 
-        print(f"Starting {ctx.pipeline}/{ctx.stage} in {ctx.env} -> {path}")
+        print(f"Starting {ctx.module} in {ctx.env} -> {path}")
         # Exceptions propagate to the job task; Jobs manages stage dependencies.
         namespace = runpy.run_path(str(path))
         entrypoint = namespace.get("run")
         if not callable(entrypoint):
             raise ValueError(f"Business script must define run(ctx): {path}")
         entrypoint(replace(ctx, spark=get_spark()))
-        print(f"Finished {ctx.pipeline}/{ctx.stage}")
+        print(f"Finished {ctx.module}")
         return "SUCCESS"
 
 
